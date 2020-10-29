@@ -6,11 +6,11 @@
 
 int main()
 {
-    PPMImage framebuffer(800, 600);
+    PPMImage image(800, 600);
 
-    framebuffer.read("../test/house_2.ppm");
-    framebuffer = rotate(framebuffer, -90.0f);
-    framebuffer.write("TestImage.ppm");
+    image.read("../test/house_2.ppm");
+    image = rotate(image, 60.0f);
+    image.write("TestImage.ppm");
 
     return 0;
 }

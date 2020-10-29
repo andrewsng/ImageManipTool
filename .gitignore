@@ -12,6 +12,5 @@ _deps
 
 .vscode
 build
-test
-a.out
-*.ppm
+*.out
+*.exe
