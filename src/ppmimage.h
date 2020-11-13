@@ -40,7 +40,7 @@ public:
 
     pixel getColor(int x, int y) const
     {
-        return _pixels[x + (y * _width)];
+        return _pixels[x + (y * width())];
     }
 
     int width() const
@@ -161,3 +161,4 @@ private:
 
 
 #endif  // #indef FILE_PPMIMAGE_H_INCLUDED
+
