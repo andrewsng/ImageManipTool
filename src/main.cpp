@@ -1,4 +1,4 @@
-#include "ppmimage.h"
+#include "image.h"
 #include "imagemanip.h"
 #include "mat2.h"
 #include "vec2.h"
@@ -10,23 +10,23 @@
 
 int main()
 {
-    PPMImage image(800, 600);
+    Image image(800, 600);
 
-    image.read("../test/house_2.ppm");
+    image.readPPM("../test/house_2.ppm");
 
     auto start = std::chrono::steady_clock::now();
-    image = rotate(image, 60.0f);
+    image = rotate(image, 90.0f);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::nano> elapsed = end - start;
     std::cout << "Elapsed time (rotate): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
-    image.write("TestImage.ppm");
 
     start = std::chrono::steady_clock::now();
-    image = scale(image, 2.0f, 0.5f);
+    image = scale(image, 2.0f, 3.0f);
     end = std::chrono::steady_clock::now();
     elapsed = end - start;
     std::cout << "Elapsed time (scale): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
-    image.write("TestImage.ppm");
+    
+    image.writePPM("TestImage.ppm");
 
     return 0;
 }
