@@ -44,14 +44,14 @@ Image transform(const Image & image, Mat2 transform)
 
     float maxX = float(image.width() - 1);
     float maxY = float(image.height() - 1);
-    // Vec2 topLeft(0.0f, maxY);
-    // Vec2 topRight(maxX, maxY);
-    // Vec2 botLeft(0.0f, 0.0f);
-    // Vec2 botRight(maxX, 0.0f);
-    Vec2 topLeft(0.5f, maxY + 0.5f);
-    Vec2 topRight(maxX + 0.5f, maxY + 0.5f);
-    Vec2 botLeft(0.5f, 0.5f);
-    Vec2 botRight(maxX + 0.5f, 0.5f);
+    Vec2 topLeft(0.0f, maxY);
+    Vec2 topRight(maxX, maxY);
+    Vec2 botLeft(0.0f, 0.0f);
+    Vec2 botRight(maxX, 0.0f);
+    // Vec2 topLeft(0.5f, maxY + 0.5f);
+    // Vec2 topRight(maxX + 0.5f, maxY + 0.5f);
+    // Vec2 botLeft(0.5f, 0.5f);
+    // Vec2 botRight(maxX + 0.5f, 0.5f);
 
     topLeft = transform * topLeft;
     topRight = transform * topRight;
@@ -65,16 +65,21 @@ Image transform(const Image & image, Mat2 transform)
 
     Image transformed(newMaxX - newMinX + 1, newMaxY - newMinY + 1);
 
+    float dx = (newMaxX - newMinX) / (transformed.width() - 1);
+    float dy = (newMaxY - newMinY) / (transformed.height() - 1);
+
     // Image tmp = gaussianBlurSeparable(image, 9, 3);
+
+    // TODO: Resampling function
 
     for (int y = 0; y < transformed.height(); ++y)
     {
         for (int x = 0; x < transformed.width(); ++x)
         {
-            Vec2 samplePos = transformInv * Vec2(newMinX + x, newMinY + y);
+            Vec2 samplePos = transformInv * Vec2(newMinX + x * dx, newMinY + y * dy);
 
-            if (0.0f <= samplePos.x && samplePos.x < float(image.width()) &&
-                0.0f <= samplePos.y && samplePos.y < float(image.height()))
+            if (-0.5f <= samplePos.x && samplePos.x <= float(image.width()) - 0.5f &&
+                -0.5f <= samplePos.y && samplePos.y <= float(image.height()) - 0.5f )
             {
                 // Image::Pixel color = image.getColor(samplePos.x, float(image.height() - 1) - samplePos.y);
                 Image::Pixel color = bilinearInterp(image, samplePos.x, float(image.height() - 1) - samplePos.y);

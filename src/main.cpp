@@ -16,7 +16,7 @@ int main()
 
     Image output;
 
-    for (int i = -10; i <= 60; ++i)
+    for (int i = 0; i <= 360; ++i)
     {
         auto start = std::chrono::steady_clock::now();
         output = rotate(image, float(i));
