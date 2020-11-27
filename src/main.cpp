@@ -12,33 +12,50 @@ int main()
 {
     Image image(800, 600);
 
-    image.readPPM("../test/house_2.ppm");
+    image.readPPM("../test/cat.ppm");
+
+    Image output;
+
+    for (int i = -10; i <= 60; ++i)
+    {
+        auto start = std::chrono::steady_clock::now();
+        output = rotate(image, float(i));
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::nano> elapsed = end - start;
+        std::cout << "Elapsed time (rotate): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+    }
 
     auto start = std::chrono::steady_clock::now();
-    //image = rotate(image, 90.0f);
+    // output = scale(image, 0.1f, 0.1f);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::nano> elapsed = end - start;
-    std::cout << "Elapsed time (rotate): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
-
-    start = std::chrono::steady_clock::now();
-    //image = scale(image, 2.0f, 3.0f);
-    end = std::chrono::steady_clock::now();
-    elapsed = end - start;
     std::cout << "Elapsed time (scale): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
 
     start = std::chrono::steady_clock::now();
-    // image = boxBlur(image, 11);
+    // output = boxBlur(image, 11);
     end = std::chrono::steady_clock::now();
     elapsed = end - start;
     std::cout << "Elapsed time (box blur): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
 
     start = std::chrono::steady_clock::now();
-    image = boxBlurSeparable(image, 11);
+    // output = boxBlurSeparable(image, 11);
     end = std::chrono::steady_clock::now();
     elapsed = end - start;
-    std::cout << "Elapsed time (box blur sep): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+    std::cout << "Elapsed time (box sep): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    // output = gaussianBlur(image, 30, 10);
+    end = std::chrono::steady_clock::now();
+    elapsed = end - start;
+    std::cout << "Elapsed time (gauss blur): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    // output = gaussianBlurSeparable(image, 30, 10);
+    end = std::chrono::steady_clock::now();
+    elapsed = end - start;
+    std::cout << "Elapsed time (gauss sep): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
     
-    image.writePPM("TestImage.ppm");
+    output.writePPM("TestImage.ppm");
 
     return 0;
 }

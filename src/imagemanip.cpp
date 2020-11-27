@@ -16,6 +16,28 @@ using FilterType1D = vector<float>;
 using FilterType2D = vector<vector<float>>;
 
 
+Image::Pixel bilinearInterp(const Image & image, float x, float y)
+{
+    int x0 = int(x);
+    int y0 = int(y);
+    int x1 = min(x0 + 1, image.width() - 1);
+    int y1 = min(y0 + 1, image.height() - 1);
+    Image::Pixel c00 = image.getColor(x0, y0);
+    Image::Pixel c01 = image.getColor(x0, y1);
+    Image::Pixel c10 = image.getColor(x1, y0);
+    Image::Pixel c11 = image.getColor(x1, y1);
+    float biasX = x - x0;
+    float biasY = y - y0;
+
+    Image::Pixel result;
+    result.r = (1.0f - biasY) * ((1.0f - biasX) * c00.r + biasX * c10.r) + biasY * ((1.0f - biasX) * c01.r + biasX * c11.r);
+    result.g = (1.0f - biasY) * ((1.0f - biasX) * c00.g + biasX * c10.g) + biasY * ((1.0f - biasX) * c01.g + biasX * c11.g);
+    result.b = (1.0f - biasY) * ((1.0f - biasX) * c00.b + biasX * c10.b) + biasY * ((1.0f - biasX) * c01.b + biasX * c11.b);
+
+    return result;
+}
+
+
 Image transform(const Image & image, Mat2 transform)
 {
     Mat2 transformInv = transform.inverse();
@@ -43,16 +65,19 @@ Image transform(const Image & image, Mat2 transform)
 
     Image transformed(newMaxX - newMinX + 1, newMaxY - newMinY + 1);
 
+    // Image tmp = gaussianBlurSeparable(image, 9, 3);
+
     for (int y = 0; y < transformed.height(); ++y)
     {
         for (int x = 0; x < transformed.width(); ++x)
         {
             Vec2 samplePos = transformInv * Vec2(newMinX + x, newMinY + y);
 
-            if (0.0f <= samplePos.x && samplePos.x <= float(image.width()) &&
-                0.0f <= samplePos.y && samplePos.y <= float(image.height()))
+            if (0.0f <= samplePos.x && samplePos.x < float(image.width()) &&
+                0.0f <= samplePos.y && samplePos.y < float(image.height()))
             {
-                Image::Pixel color = image.getColor(samplePos.x, float(image.height() - 1) - samplePos.y);
+                // Image::Pixel color = image.getColor(samplePos.x, float(image.height() - 1) - samplePos.y);
+                Image::Pixel color = bilinearInterp(image, samplePos.x, float(image.height() - 1) - samplePos.y);
                 transformed.setColor(x, transformed.height() - y - 1, color.r, color.g, color.b);
             }
         }
@@ -200,5 +225,41 @@ Image boxBlurSeparable(const Image & image, int radius)
     FilterType1D boxFilter(size, weight);
 
     return convolveImageSeparable(image, boxFilter);
+}
+
+
+Image gaussianBlur(const Image & image, int radius, float stddev)
+{
+    int size = 2 * radius + 1;
+    float s = 2 * stddev * stddev;
+    FilterType2D gaussianFilter(size, FilterType1D(size, 0.0f));
+    for (int y = 0; y < size; ++y)
+    {
+        for (int x = 0; x < size; ++x)
+        {
+            float x2 = x - radius;
+            float y2 = y - radius;
+            float G = expf(-(x2*x2 + y2*y2) / s) / (M_PI * s);
+            gaussianFilter[x][y] = G;
+        }
+    }
+
+    return convolveImage2D(image, gaussianFilter);
+}
+
+
+Image gaussianBlurSeparable(const Image & image, int radius, float stddev)
+{
+    int size = 2 * radius + 1;
+    float s = 2 * stddev * stddev;
+    FilterType1D gaussianFilter(size, 0.0f);
+    for (int x = 0; x < size; ++x)
+    {
+        float x2 = x - radius;
+        float G = expf(-(x2 * x2) / s) / sqrtf(M_PI * s);
+        gaussianFilter[x] = G;
+    }
+
+    return convolveImageSeparable(image, gaussianFilter);
 }
 

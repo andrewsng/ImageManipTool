@@ -12,6 +12,10 @@ Image boxBlur(const Image & image, int radius);
 
 Image boxBlurSeparable(const Image & image, int radius);
 
+Image gaussianBlur(const Image & image, int radius, float stddev);
+
+Image gaussianBlurSeparable(const Image & image, int radius, float stddev);
+
 
 #endif  // #ifndef FILE_IMAGEMANIP_H_INCLUDED
 
