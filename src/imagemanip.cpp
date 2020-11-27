@@ -2,9 +2,18 @@
 #include "mat2.h"
 #include "vec2.h"
 
-#include <algorithm>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <cstddef>
+using std::size_t;
+#include <algorithm>
+using std::max;
+using std::min;
+using std::swap;
+#include <vector>
+using std::vector;
+using FilterType1D = vector<float>;
+using FilterType2D = vector<vector<float>>;
 
 
 Image transform(const Image & image, Mat2 transform)
@@ -27,10 +36,10 @@ Image transform(const Image & image, Mat2 transform)
     botLeft = transform * botLeft;
     botRight = transform * botRight;
 
-    float newMaxX = std::max({ topLeft.x, topRight.x, botLeft.x, botRight.x });
-    float newMinX = std::min({ topLeft.x, topRight.x, botLeft.x, botRight.x });
-    float newMaxY = std::max({ topLeft.y, topRight.y, botLeft.y, botRight.y });
-    float newMinY = std::min({ topLeft.y, topRight.y, botLeft.y, botRight.y });
+    float newMaxX = max({ topLeft.x, topRight.x, botLeft.x, botRight.x });
+    float newMinX = min({ topLeft.x, topRight.x, botLeft.x, botRight.x });
+    float newMaxY = max({ topLeft.y, topRight.y, botLeft.y, botRight.y });
+    float newMinY = min({ topLeft.y, topRight.y, botLeft.y, botRight.y });
 
     Image transformed(newMaxX - newMinX + 1, newMaxY - newMinY + 1);
 
@@ -74,5 +83,122 @@ Image scale(const Image & image, float scaleX, float scaleY)
     };
 
     return transform(image, scaleMat);
+}
+
+
+Image::Pixel convolvePixel2D(const Image & image, const FilterType2D & filter, int x, int y)
+{
+    int r = (filter.size() - 1) / 2;
+    Image::Pixel sum;
+    for (int j = y-r; j <= y+r; ++j)
+    {
+        for (int i = x-r; i <= x+r; ++i)
+        {
+            float weight = filter[i-x+r][j-y+r];
+
+            int clampI = max(0, min(i, image.width() - 1));
+            int clampJ = max(0, min(j, image.height() - 1));
+
+            Image::Pixel val = image.getColor(clampI, clampJ);
+            sum.r += val.r * weight;
+            sum.g += val.g * weight;
+            sum.b += val.b * weight;
+        }
+    }
+
+    return sum;
+}
+
+
+Image convolveImage2D(const Image & image, const FilterType2D & filter)
+{
+    Image convolved(image.width(), image.height());
+
+    for (int y = 0; y < convolved.height(); ++y)
+    {
+        for (int x = 0; x < convolved.width(); ++x)
+        {
+            convolved.setColor(x, y, convolvePixel2D(image, filter, x, y));
+        }
+    }
+
+    return convolved;
+}
+
+
+Image::Pixel convolvePixel1D(const Image & image, const FilterType1D & filter, int x, int y, bool vert)
+{
+    int r = (filter.size() - 1) / 2;
+    Image::Pixel sum;
+
+    if (vert)
+        swap(x, y);
+
+    for (int i = x-r; i <= x+r; ++i)
+    {
+        float weight = filter[i-x+r];
+
+        int clampI;
+        Image::Pixel val;
+        if (vert)
+        {
+            clampI = max(0, min(i, image.height() - 1));
+            val = image.getColor(y, clampI);
+        }
+        else
+        {
+            clampI = max(0, min(i, image.width() - 1));
+            val = image.getColor(clampI, y);
+        }
+        sum.r += val.r * weight;
+        sum.g += val.g * weight;
+        sum.b += val.b * weight;
+    }
+
+    return sum;
+}
+
+
+Image convolveImageSeparable(const Image & image, const FilterType1D & filter)
+{
+    Image middle(image.width(), image.height());
+    for (int y = 0; y < middle.height(); ++y)
+    {
+        for (int x = 0; x < middle.width(); ++x)
+        {
+            middle.setColor(x, y, convolvePixel1D(image, filter, x, y, false));
+        }
+    }
+
+    Image convolved(middle.width(), middle.height());
+    for (int y = 0; y < convolved.height(); ++y)
+    {
+        for (int x = 0; x < convolved.width(); ++x)
+        {
+            convolved.setColor(x, y, convolvePixel1D(middle, filter, x, y, true));
+        }
+    }
+
+    return convolved;
+}
+
+
+Image boxBlur(const Image & image, int radius)
+{
+    int size = 2 * radius + 1;
+    float weight = 1.0f / (size * size);
+    FilterType2D boxFilter(size, FilterType1D(size, weight));
+
+    return convolveImage2D(image, boxFilter);
+}
+
+
+Image boxBlurSeparable(const Image & image, int radius)
+{
+    int size = 2 * radius + 1;
+    float weight = 1.0f / size;
+    FilterType1D boxFilter(size, weight);
+
+    return convolveImageSeparable(image, boxFilter);
 }
 

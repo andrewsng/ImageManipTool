@@ -25,17 +25,35 @@ public:
 
 public:
 
+    Image()
+        :_width(800),_height(600),
+         _data(width() * height(), Pixel())
+    {}
+
     Image(int width, int height)
         :_width(width),_height(height),
          _data(width * height, Pixel())
     {}
 
+    ~Image() = default;
+    Image(const Image & other) = default;
+    Image & operator=(const Image & other) = default;
+    Image(Image && other) = default;
+    Image & operator=(Image && other) = default;
+
+public:
+
     void setColor(int x, int y, float r, float g, float b)
     {
-        Pixel & px = _data[x + (y * _width)];
+        Pixel & px = _data[x + (y * width())];
         px.r = r;
         px.g = g;
         px.b = b;
+    }
+
+    void setColor(int x, int y, Image::Pixel px)
+    {
+        _data[x + (y * width())] = px;
     }
 
     Pixel getColor(int x, int y) const

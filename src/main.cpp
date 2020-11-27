@@ -15,16 +15,28 @@ int main()
     image.readPPM("../test/house_2.ppm");
 
     auto start = std::chrono::steady_clock::now();
-    image = rotate(image, 90.0f);
+    //image = rotate(image, 90.0f);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::nano> elapsed = end - start;
     std::cout << "Elapsed time (rotate): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
 
     start = std::chrono::steady_clock::now();
-    image = scale(image, 2.0f, 3.0f);
+    //image = scale(image, 2.0f, 3.0f);
     end = std::chrono::steady_clock::now();
     elapsed = end - start;
     std::cout << "Elapsed time (scale): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    // image = boxBlur(image, 11);
+    end = std::chrono::steady_clock::now();
+    elapsed = end - start;
+    std::cout << "Elapsed time (box blur): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    image = boxBlurSeparable(image, 11);
+    end = std::chrono::steady_clock::now();
+    elapsed = end - start;
+    std::cout << "Elapsed time (box blur sep): " << elapsed.count() / (image.height() * image.width()) << " ns/px" << std::endl;
     
     image.writePPM("TestImage.ppm");
 
