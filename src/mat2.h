@@ -59,7 +59,7 @@ public:
     Mat2 inverse() const
     {
         const Mat2 & mat = *this;
-        float k = 1.0f / (mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]);
+        value_type k = 1.0f / (mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]);
         return Mat2{ {  k * mat[1][1], -k * mat[0][1] },
                      { -k * mat[1][0],  k * mat[0][0] } };
     }

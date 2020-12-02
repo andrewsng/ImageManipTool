@@ -18,7 +18,7 @@ public:
     Vec2() : x(0.0f), y(0.0f)
     {};
 
-    Vec2(float initX, float initY) : x(initX), y(initY)
+    Vec2(value_type initX, value_type initY) : x(initX), y(initY)
     {};
 
     ~Vec2() = default;
@@ -29,9 +29,8 @@ public:
 
 public:
 
-    float x;
-
-    float y;
+    value_type x;
+    value_type y;
 
 };
 

@@ -18,8 +18,8 @@ using FilterType2D = vector<vector<float>>;
 
 Image::Pixel bilinearInterp(const Image & image, float x, float y)
 {
-    int x0 = int(x);
-    int y0 = int(y);
+    int x0 = min(int(x), image.width() - 1);
+    int y0 = min(int(y), image.height() - 1);
     int x1 = min(x0 + 1, image.width() - 1);
     int y1 = min(y0 + 1, image.height() - 1);
     Image::Pixel c00 = image.getColor(x0, y0);
@@ -40,8 +40,6 @@ Image::Pixel bilinearInterp(const Image & image, float x, float y)
 
 Image transform(const Image & image, Mat2 transform)
 {
-    Mat2 transformInv = transform.inverse();
-
     float maxX = float(image.width() - 1);
     float maxY = float(image.height() - 1);
     Vec2 topLeft(0.0f, maxY);
@@ -65,12 +63,21 @@ Image transform(const Image & image, Mat2 transform)
 
     Image transformed(newMaxX - newMinX + 1, newMaxY - newMinY + 1);
 
-    float dx = (newMaxX - newMinX) / (transformed.width() - 1);
-    float dy = (newMaxY - newMinY) / (transformed.height() - 1);
+    float dx = (newMaxX - newMinX) / transformed.width();
+    float dy = (newMaxY - newMinY) / transformed.height();
 
-    // Image tmp = gaussianBlurSeparable(image, 9, 3);
+    Image source;
+    float sizeRatio = float(transformed.width() * transformed.height()) / (image.width() * image.height());
+    if (sizeRatio < 0.25)
+        source = gaussianBlurSeparable(image, 9, 3);
+    // else if (sizeRatio > 1.5f)
+    //     source = gaussianBlurSeparable(image, 3, 1);
+    else
+        source = image;
 
     // TODO: Resampling function
+
+    Mat2 transformInv = transform.inverse();
 
     for (int y = 0; y < transformed.height(); ++y)
     {
@@ -78,12 +85,12 @@ Image transform(const Image & image, Mat2 transform)
         {
             Vec2 samplePos = transformInv * Vec2(newMinX + x * dx, newMinY + y * dy);
 
-            if (-0.5f <= samplePos.x && samplePos.x <= float(image.width()) - 0.5f &&
-                -0.5f <= samplePos.y && samplePos.y <= float(image.height()) - 0.5f )
+            if (-0.5f <= samplePos.x && samplePos.x <= float(source.width()) - 0.5f &&
+                -0.5f <= samplePos.y && samplePos.y <= float(source.height()) - 0.5f)
             {
-                // Image::Pixel color = image.getColor(samplePos.x, float(image.height() - 1) - samplePos.y);
-                Image::Pixel color = bilinearInterp(image, samplePos.x, float(image.height() - 1) - samplePos.y);
-                transformed.setColor(x, transformed.height() - y - 1, color.r, color.g, color.b);
+                // Image::Pixel color = source.getColor(samplePos.x, float(source.height() - 1) - samplePos.y);
+                Image::Pixel color = bilinearInterp(source, samplePos.x + 0.5f, float(source.height() - 1) - samplePos.y + 0.5f);
+                transformed.setColor(x, transformed.height() - y - 1, color);
             }
         }
     }
@@ -113,6 +120,17 @@ Image scale(const Image & image, float scaleX, float scaleY)
     };
 
     return transform(image, scaleMat);
+}
+
+
+Image skew(const Image & image, float skewX, float skewY)
+{
+    Mat2 skewMat = {
+        { 1.0f,  skewX },
+        { skewY, 1.0f  }
+    };
+
+    return transform(image, skewMat);
 }
 
 

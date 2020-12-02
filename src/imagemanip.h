@@ -8,6 +8,8 @@ Image rotate(const Image & image, float angleDeg);
 
 Image scale(const Image & image, float scaleX, float scaleY);
 
+Image skew(const Image & image, float skewX, float skewY);
+
 Image boxBlur(const Image & image, int radius);
 
 Image boxBlurSeparable(const Image & image, int radius);
