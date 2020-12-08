@@ -6,12 +6,10 @@
 // For CS 301 Fall 2020
 // Source for image processing operations in CUDA
 
-#include "imagemanip.h"
 #include "imagemanipcuda.h"
 #include "mat2.h"
 #include "vec2.h"
 
-#include <iostream>
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <cstddef>
@@ -26,6 +24,9 @@ using FilterType1D = vector<float>;
 using FilterType2D = vector<vector<float>>;
 
 
+// bilinearInterp
+// Performs bilinear interpolation to find Pixel value at float coords on given image.
+// Executed on device only.
 __device__ void bilinearInterp(float * input, float x, float y, int width, int height, float * color)
 {
     int x0 = int(x) < width-1 ? int(x) : width-1;
@@ -45,6 +46,9 @@ __device__ void bilinearInterp(float * input, float x, float y, int width, int h
 }
 
 
+// transformKernel
+// CUDA kernel that performs inverse transformation and bilinear
+//   interp sampling for each pixel, storing values in output.
 __global__ void transformKernel(float * input, float * output, float minX, float minY, 
                                 float dx, float dy, int iWidth, int iHeight, int oWidth, int oHeight, float * mat)
 {                            
@@ -53,6 +57,7 @@ __global__ void transformKernel(float * input, float * output, float minX, float
     if (x < 0 || x > oWidth-1 || y < 0 || y > oHeight-1)
         return;
 
+    // "minX + x * dx" finds floating-point coordinates of pixels in output space
     float tx = mat[0] * (minX + x * dx) + mat[1] * (minY + y * dy);    
     float ty = mat[2] * (minX + x * dx) + mat[3] * (minY + y * dy);
 
@@ -60,22 +65,21 @@ __global__ void transformKernel(float * input, float * output, float minX, float
         -0.5f <= ty && ty <= float(iHeight) - 0.5f)
     {
         int out = (oHeight-1-y) * oWidth*3 + x*3;
-        // int in = (iHeight-1-int(ty)) * iWidth*3 + int(tx)*3;
-        // output[out+0] = input[in+0];
-        // output[out+1] = input[in+1];
-        // output[out+2] = input[in+2];
-
         float color[3];
         bilinearInterp(input, tx+0.5f, iHeight-1-ty+0.5f, iWidth, iHeight, color);
         output[out+0] = color[0];
         output[out+1] = color[1];
         output[out+2] = color[2];
-    }    
+    }
 }    
 
 
+// transformCuda
+// Helper function to transform image using given transformation matrix.
+// Uses CUDA for GPU acceleration.
 Image transformCuda(const Image & image, Mat2 transform)
 {
+    // Original 4 corners of image
     float maxX = float(image.width() - 1);
     float maxY = float(image.height() - 1);
     Vec2 topLeft(0.0f, maxY);
@@ -83,41 +87,48 @@ Image transformCuda(const Image & image, Mat2 transform)
     Vec2 botLeft(0.0f, 0.0f);
     Vec2 botRight(maxX, 0.0f);
 
+    // Find where the 4 corners move to
     topLeft = transform * topLeft;
     topRight = transform * topRight;
     botLeft = transform * botLeft;
     botRight = transform * botRight;
 
+    // Construct transformed Image using 4 corners
     float newMaxX = max({ topLeft.x, topRight.x, botLeft.x, botRight.x });
     float newMinX = min({ topLeft.x, topRight.x, botLeft.x, botRight.x });
     float newMaxY = max({ topLeft.y, topRight.y, botLeft.y, botRight.y });
     float newMinY = min({ topLeft.y, topRight.y, botLeft.y, botRight.y });
-
     Image transformed(newMaxX - newMinX + 1, newMaxY - newMinY + 1);
 
+    // Distance between pixels in output space
     float dx = (newMaxX - newMinX) / transformed.width();
     float dy = (newMaxY - newMinY) / transformed.height();
 
+    // Perform gaussian blur on source image if downsampling
     Image source;
     float sizeRatio = float(transformed.width() * transformed.height()) / (image.width() * image.height());
     if (sizeRatio < 0.25)
         source = gaussianBlurSeparableCuda(image, 9, 3);
-    // else if (sizeRatio > 1.5f)
-    //     source = gaussianBlurSeparableCuda(image, 3, 1);
     else
         source = image;
 
     Mat2 transformInv = transform.inverse();
 
+    // Move source image onto device
     float * input;
     cudaMalloc(&input, source.width() * source.height() * sizeof(float) * 3);
     cudaMemcpy(input, &source(0, 0), source.width() * source.height() * sizeof(float) * 3, cudaMemcpyHostToDevice);
+
+    // Allocate device memory for output image
     float * output;
     cudaMalloc(&output, transformed.width() * transformed.height() * sizeof(float) * 3);
+
+    // Move inverse transform matrix onto device
     float * mat;
     cudaMalloc(&mat, 4 * sizeof(float));
     cudaMemcpy(mat, &transformInv[0][0], 4 * sizeof(float), cudaMemcpyHostToDevice);
 
+    // Call kernel
     dim3 blockSize(16, 16);
     dim3 gridSize((transformed.width()  + blockSize.x - 1) / blockSize.x,
                   (transformed.height() + blockSize.y - 1) / blockSize.y);
@@ -125,9 +136,11 @@ Image transformCuda(const Image & image, Mat2 transform)
     transformKernel<<<gridSize, blockSize>>>(input, output, newMinX, newMinY, dx, dy,
         source.width(), source.height(), transformed.width(), transformed.height(), mat);
 
+    // Move output image back to host
     cudaDeviceSynchronize();
     cudaMemcpy(&transformed(0, 0), output, transformed.width() * transformed.height() * sizeof(float) * 3, cudaMemcpyDeviceToHost);
 
+    // Free allocated memory
     cudaFree(input);
     cudaFree(output);
     cudaFree(mat);
@@ -136,6 +149,8 @@ Image transformCuda(const Image & image, Mat2 transform)
 }
 
 
+// rotateCuda
+// (see header.)
 Image rotateCuda(const Image & image, float angleDeg)
 {
     float angleRad = M_PI * angleDeg / 180.0f;
@@ -150,6 +165,8 @@ Image rotateCuda(const Image & image, float angleDeg)
 }
 
 
+// scaleCuda
+// (see header.)
 Image scaleCuda(const Image & image, float scaleX, float scaleY)
 {
     Mat2 scaleMat = {
@@ -161,6 +178,22 @@ Image scaleCuda(const Image & image, float scaleX, float scaleY)
 }
 
 
+// skewCuda
+// (see header.)
+Image skewCuda(const Image & image, float skewX, float skewY)
+{
+    Mat2 skewMat = {
+        { 1.0f,  skewX },
+        { skewY, 1.0f  }
+    };
+
+    return transformCuda(image, skewMat);
+}
+
+
+// clamp
+// Clamps x value between a and b.
+// Executed on device only.
 __device__ int clamp(int x, int a, int b)
 {
     if (b < a)
@@ -177,6 +210,8 @@ __device__ int clamp(int x, int a, int b)
 }
 
 
+// convolve2Dkernel
+// CUDA kernel that runs 2D filter on each pixel, storing values in output.
 __global__ void convolve2DKernel(float * input, float * output, int width, int height, float * filter, int size)
 {
     int r = (size - 1) / 2;
@@ -209,6 +244,8 @@ __global__ void convolve2DKernel(float * input, float * output, int width, int h
 }
 
 
+// printFilter
+// CUDA kernel that prints given filter for debugging purposes.
 __global__ void printFilter(float * filter, int size)
 {
     int x = 0;
@@ -227,30 +264,41 @@ __global__ void printFilter(float * filter, int size)
 }
 
 
+// convolveImage2DCuda
+// Helper function to convolve image using given 2D filter.
+// Uses CUDA for GPU acceleration.
 Image convolveImage2DCuda(const Image & image, const FilterType1D & filter)
 {
     Image convolved(image.width(), image.height());
 
     int size = sqrt(filter.size());
 
+    // Move source image onto device
     float * input;
     cudaMalloc(&input, image.width() * image.height() * sizeof(float) * 3);
     cudaMemcpy(input, &image(0, 0), image.width() * image.height() * sizeof(float) * 3, cudaMemcpyHostToDevice);
+
+    // Allocate device memory for output image
     float * output;
     cudaMalloc(&output, convolved.width() * convolved.height() * sizeof(float) * 3);
+
+    // Move 2D filter onto device
     float * filter2D;
     cudaMalloc(&filter2D, size * size * sizeof(float));
     cudaMemcpy(filter2D, &filter[0], size * size * sizeof(float), cudaMemcpyHostToDevice);
 
+    // Call kernel
     dim3 blockSize(16, 16);
     dim3 gridSize((convolved.width()  + blockSize.x - 1) / blockSize.x,
                   (convolved.height() + blockSize.y - 1) / blockSize.y);
 
     convolve2DKernel<<<gridSize, blockSize>>>(input, output, image.width(), image.height(), filter2D, size);
 
+    // Move output image back to host
     cudaDeviceSynchronize();
     cudaMemcpy(&convolved(0, 0), output, convolved.width() * convolved.height() * sizeof(float) * 3, cudaMemcpyDeviceToHost);
 
+    // Free allocated memory
     cudaFree(input);
     cudaFree(output);
     cudaFree(filter2D);
@@ -259,6 +307,9 @@ Image convolveImage2DCuda(const Image & image, const FilterType1D & filter)
 }
 
 
+// convolve1DKernel
+// CUDA kernel that runs 1D filter on each pixel, storing values in output.
+// bool vert specifies if filter is used vertically or horizontally.
 __global__ void convolve1DKernel(float * input, float * output, int width, int height, float * filter, int size, bool vert)
 {
     int r = (size - 1) / 2;
@@ -312,38 +363,47 @@ __global__ void convolve1DKernel(float * input, float * output, int width, int h
 }
 
 
+// convolveImage1DCuda
+// Helper function to convolve image using given separable 1D filter.
+// Uses CUDA for GPU acceleration.
 Image convolveImage1DCuda(const Image & image, const FilterType1D & filter)
 {
-    Image middle(image.width(), image.height());
+    Image convolved(image.width(), image.height());
 
     int size = filter.size();
     
+    // Move source image onto device
     float * input;
     cudaMalloc(&input, image.width() * image.height() * sizeof(float) * 3);
     cudaMemcpy(input, &image(0, 0), image.width() * image.height() * sizeof(float) * 3, cudaMemcpyHostToDevice);
 
+    // Allocate device memory for output image
     float * output;
-    cudaMalloc(&output, middle.width() * middle.height() * sizeof(float) * 3);
+    cudaMalloc(&output, convolved.width() * convolved.height() * sizeof(float) * 3);
     
+    // Move 1D filter onto device
     float * filter1D;
     cudaMalloc(&filter1D, size * sizeof(float));
     cudaMemcpy(filter1D, &filter[0], size * sizeof(float), cudaMemcpyHostToDevice);
     
     dim3 blockSize(16, 16);
-    dim3 gridSize((middle.width()  + blockSize.x - 1) / blockSize.x,
-                  (middle.height() + blockSize.y - 1) / blockSize.y);
-
+    dim3 gridSize((convolved.width()  + blockSize.x - 1) / blockSize.x,
+    (convolved.height() + blockSize.y - 1) / blockSize.y);
+    
+    // Horizontal convolution from image -> middle
     convolve1DKernel<<<gridSize, blockSize>>>(input, output, image.width(), image.height(), filter1D, size, false);
 
     cudaDeviceSynchronize();
 
-    convolve1DKernel<<<gridSize, blockSize>>>(output, input, middle.width(), middle.height(), filter1D, size, true);
+    // Vertical convolution from middle -> convolved
+    convolve1DKernel<<<gridSize, blockSize>>>(output, input, convolved.width(), convolved.height(), filter1D, size, true);
     
     cudaDeviceSynchronize();
     
-    Image convolved(middle.width(), middle.height());
+    // Move output image back to host
     cudaMemcpy(&convolved(0, 0), input, convolved.width() * convolved.height() * sizeof(float) * 3, cudaMemcpyDeviceToHost);
 
+    // Free allocated memory
     cudaFree(input);
     cudaFree(output);
     cudaFree(filter1D);
@@ -352,6 +412,8 @@ Image convolveImage1DCuda(const Image & image, const FilterType1D & filter)
 }
 
 
+// boxBlurCuda
+// (see header.)
 Image boxBlurCuda(const Image & image, int radius)
 {
     int size = 2 * radius + 1;
@@ -362,6 +424,8 @@ Image boxBlurCuda(const Image & image, int radius)
 }
 
 
+// boxBlurSeparableCuda
+// (see header.)
 Image boxBlurSeparableCuda(const Image & image, int radius)
 {
     int size = 2 * radius + 1;
@@ -372,6 +436,8 @@ Image boxBlurSeparableCuda(const Image & image, int radius)
 }
 
 
+// gaussianBlurCuda
+// (see header.)
 Image gaussianBlurCuda(const Image & image, int radius, float stddev)
 {
     int size = 2 * radius + 1;
@@ -392,6 +458,8 @@ Image gaussianBlurCuda(const Image & image, int radius, float stddev)
 }
 
 
+// gaussianBlurSeparableCuda
+// (see header.)
 Image gaussianBlurSeparableCuda(const Image & image, int radius, float stddev)
 {
     int size = 2 * radius + 1;

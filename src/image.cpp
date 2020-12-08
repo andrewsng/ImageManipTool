@@ -29,8 +29,11 @@ using std::uint8_t;
 #include <limits>
 
 
+// readPPM
+// (see header.)
 bool Image::readPPM(string filename)
 {
+    // Open image file
     ifstream fin(filename, std::ios::binary);
     if (!fin)
     {
@@ -38,6 +41,7 @@ bool Image::readPPM(string filename)
         return false;
     }
 
+    // Read PPM file header
     string type;
     int width, height, maxVal;
     if (!getString(fin, type) ||
@@ -49,6 +53,7 @@ bool Image::readPPM(string filename)
         return false;
     }
 
+    // Validate PPM file header values
     if (type != "P6" ||
         width < 0    || 
         height < 0   ||
@@ -58,6 +63,7 @@ bool Image::readPPM(string filename)
         return false;
     }
 
+    // Reads binary file data into buffer of uint8_t's.
     vector<uint8_t> pixels(width * height * 3, 0);
     fin.get();
     fin.read((char *)&pixels[0], pixels.size() * sizeof(uint8_t));
@@ -67,6 +73,7 @@ bool Image::readPPM(string filename)
         return false;
     }
 
+    // Converts uint8_t data into a buffer of floats
     vector<Pixel> data(width * height, Pixel());
     float scale = 1 / 255.0f;
     for (size_t i = 0; i < data.size(); ++i)
@@ -76,6 +83,7 @@ bool Image::readPPM(string filename)
         data[i].b = pixels[i * 3 + 2] * scale;
     }
 
+    // Move values to object data members
     _width = width;
     _height = height;
     _data = move(data);
@@ -84,8 +92,11 @@ bool Image::readPPM(string filename)
 }
 
 
+// writePPM
+// (see header.)
 bool Image::writePPM(string filename) const
 {
+    // Open image file
     ofstream fout(filename, std::ios::binary);
     if (!fout)
     {
@@ -93,6 +104,7 @@ bool Image::writePPM(string filename) const
         return false;
     }
 
+    // Write PPM file header
     fout << "P6" << '\n'
             << width() << ' ' << height() << '\n'
             << 255 << '\n';
@@ -102,6 +114,7 @@ bool Image::writePPM(string filename) const
         return false;
     }
 
+    // Convert float data into a buffer of uint8_t's
     vector<uint8_t> pixels(width() * height() * 3, 0);
     for (size_t i = 0; i < _data.size(); ++i)
     {
@@ -110,6 +123,7 @@ bool Image::writePPM(string filename) const
         pixels[i * 3 + 2] = (uint8_t)(_data[i].b * 255);
     }
     
+    // Write binary file data from buffer of uint8_t's
     fout.write((char *)&pixels[0], pixels.size() * sizeof(uint8_t));
     if (!fout)
     {
@@ -121,6 +135,8 @@ bool Image::writePPM(string filename) const
 }
 
 
+// getString
+// (see header.)
 bool Image::getString(ifstream & ifs, string & str) const
 {
     while (true)
@@ -140,6 +156,8 @@ bool Image::getString(ifstream & ifs, string & str) const
 }
 
 
+// getInt
+// (see header.)
 bool Image::getInt(ifstream & ifs, int & num) const
 {
     string str;

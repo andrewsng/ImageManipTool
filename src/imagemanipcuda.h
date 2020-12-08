@@ -24,6 +24,12 @@ Image rotateCuda(const Image & image, float angleDeg);
 Image scaleCuda(const Image & image, float scaleX, float scaleY);
 
 
+// skewCuda
+// Skews image by given x and y scales.
+// Uses CUDA for GPU acceleration.
+Image skewCuda(const Image & image, float skewX, float skewY);
+
+
 // boxBlurCuda
 // Blurs image using a 2D box filter of given radius.
 // Uses CUDA for GPU acceleration.
