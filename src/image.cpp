@@ -1,3 +1,11 @@
+// image.cpp
+// Andrew S. Ng
+// Started: 2020-12-02
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Source for Image class
+
 #include "image.h"
 
 #include <iostream>

@@ -1,9 +1,17 @@
+// image.h
+// Andrew S. Ng
+// Started: 2020-10-23
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Header for Image class
+
 #ifndef FILE_IMAGE_H_INCLUDED
 #define FILE_IMAGE_H_INCLUDED
 
-#include <fstream>
-#include <string>
-#include <vector>
+#include <fstream>  // For std::ifstream/ofstream
+#include <string>   // For std::string
+#include <vector>   // For std::vector
 
 
 class Image

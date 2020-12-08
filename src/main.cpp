@@ -1,3 +1,11 @@
+// main.cpp
+// Andrew S. Ng
+// Started: 2020-10-23
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Main for image manip program
+
 #include "image.h"
 #include "imagemanip.h"
 #include "imagemanipcuda.h"
@@ -13,169 +21,193 @@ int main()
 {
     Image image(800, 600);
 
-    image.readPPM("../test/west_2.ppm");
+    image.readPPM("../test/cat.ppm");
 
     Image output;
 
     // image = scale(image, 0.5f, 0.5f);
 
-    int n = 0;
+    int n = 10;
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             rotate(image, 60);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (rotate 60): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
-        output = rotate(image, -120);
+        std::cout << "Avg time (rotate 60): " << time / n << " ns/px" << std::endl;
+        output = rotate(image, 60);
         output.writePPM("../out/0_rotate.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             rotateCuda(image, 60);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (rotate cuda 60): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (rotate cuda 60): " << time / n << " ns/px" << std::endl;
         output = rotateCuda(image, 60);
         output.writePPM("../out/1_rotate_cuda.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
-            scale(image, 1.5f, 0.75f);
+            auto start = std::chrono::steady_clock::now();
+            scale(image, 1.25f, 1.75f);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (scale 2x): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (scale 2x): " << time / n << " ns/px" << std::endl;
         output = scale(image, 1.25f, 1.75f);
         output.writePPM("../out/2_scale.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
-            scaleCuda(image, 1.5f, 0.75f);
+            auto start = std::chrono::steady_clock::now();
+            scaleCuda(image, 1.25f, 1.75f);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (scale cuda 2x): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
-        output = scaleCuda(image, 1.5f, 0.75f);
+        std::cout << "Avg time (scale cuda 2x): " << time / n << " ns/px" << std::endl;
+        output = scaleCuda(image, 1.25f, 1.75f);
         output.writePPM("../out/3_scale_cuda.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
-        for (int i = 0; i < 1; ++i)
+        double time = 0.0;
+        for (int i = 0; i < n; ++i)
         {
-            skew(image, 0.25f, 0.75f);
+            auto start = std::chrono::steady_clock::now();
+            skew(image, 0.125f, 0.25f);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (skew 2X): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (skew 2X): " << time / n << " ns/px" << std::endl;
         output = skew(image, 0.125f, 0.25f);
         output.writePPM("../out/12_skew.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             boxBlur(image, 15);
-            std::cout << i << '\n';
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (box blur): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (box blur): " << time / n << " ns/px" << std::endl;
         output = boxBlur(image, 15);
         output.writePPM("../out/4_box.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             boxBlurCuda(image, 15);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (box cuda): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (box cuda): " << time / n << " ns/px" << std::endl;
         output = boxBlurCuda(image, 15);
         output.writePPM("../out/5_box_cuda.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             boxBlurSeparable(image, 15);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (box sep): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
-        output = boxBlurSeparable(image, 30);
+        std::cout << "Avg time (box sep): " << time / n << " ns/px" << std::endl;
+        output = boxBlurSeparable(image, 15);
         output.writePPM("../out/6_box_sep.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             boxBlurSeparableCuda(image, 15);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (box cuda sep): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (box cuda sep): " << time / n << " ns/px" << std::endl;
         output = boxBlurSeparableCuda(image, 15);
         output.writePPM("../out/7_box_sep_cuda.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             gaussianBlur(image, 15, 5);
-            std::cout << i << '\n';
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (gauss blur): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (gauss blur): " << time / n << " ns/px" << std::endl;
         output = gaussianBlur(image, 15, 5);
         output.writePPM("../out/8_gauss.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             gaussianBlurCuda(image, 15, 5);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (gauss cuda): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (gauss cuda): " << time / n << " ns/px" << std::endl;
         output = gaussianBlurCuda(image, 15, 5);
         output.writePPM("../out/9_gauss_cuda.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             gaussianBlurSeparable(image, 15, 5);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (gauss sep): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
+        std::cout << "Avg time (gauss sep): " << time / n << " ns/px" << std::endl;
         output = gaussianBlurSeparable(image, 15, 5);
         output.writePPM("../out/10_gauss_sep.ppm");
     }
     {
-        auto start = std::chrono::steady_clock::now();
+        double time = 0.0;
         for (int i = 0; i < n; ++i)
         {
+            auto start = std::chrono::steady_clock::now();
             gaussianBlurSeparableCuda(image, 15, 5);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::nano> elapsed = end - start;
+            time += elapsed.count() / (image.height() * image.width());
         }
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::nano> elapsed = end - start;
-        std::cout << "Avg time (gauss sep cuda): " << elapsed.count() / (n * image.height() * image.width()) << " ns/px" << std::endl;
-        output = gaussianBlurSeparableCuda(image, 60, 20);
+        std::cout << "Avg time (gauss sep cuda): " << time / n << " ns/px" << std::endl;
+        output = gaussianBlurSeparableCuda(image, 15, 5);
         output.writePPM("../out/11_gauss_sep_cuda.ppm");
     }
     

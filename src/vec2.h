@@ -1,3 +1,12 @@
+// vec2.h
+// Andrew S. Ng
+// Started: 2020-11-12
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Header for Vec2 class
+// No associated source file
+
 #ifndef FILE_VEC2_H_INCLUDED
 #define FILE_VEC2_H_INCLUDED
 

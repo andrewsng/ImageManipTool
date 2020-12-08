@@ -1,3 +1,11 @@
+// imagemanip.cpp
+// Andrew S. Ng
+// Started: 2020-11-12
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Source for image processing operations
+
 #include "imagemanip.h"
 #include "mat2.h"
 #include "vec2.h"
@@ -46,10 +54,6 @@ Image transform(const Image & image, Mat2 transform)
     Vec2 topRight(maxX, maxY);
     Vec2 botLeft(0.0f, 0.0f);
     Vec2 botRight(maxX, 0.0f);
-    // Vec2 topLeft(0.5f, maxY + 0.5f);
-    // Vec2 topRight(maxX + 0.5f, maxY + 0.5f);
-    // Vec2 botLeft(0.5f, 0.5f);
-    // Vec2 botRight(maxX + 0.5f, 0.5f);
 
     topLeft = transform * topLeft;
     topRight = transform * topRight;
@@ -74,8 +78,6 @@ Image transform(const Image & image, Mat2 transform)
     //     source = gaussianBlurSeparable(image, 3, 1);
     else
         source = image;
-
-    // TODO: Resampling function
 
     Mat2 transformInv = transform.inverse();
 

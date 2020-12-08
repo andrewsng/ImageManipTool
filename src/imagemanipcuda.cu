@@ -1,3 +1,11 @@
+// imagemanipcuda.cu
+// Andrew S. Ng
+// Started: 2020-12-01
+// Updated: 2020-12-07
+//
+// For CS 301 Fall 2020
+// Source for image processing operations in CUDA
+
 #include "imagemanip.h"
 #include "imagemanipcuda.h"
 #include "mat2.h"
@@ -18,45 +26,52 @@ using FilterType1D = vector<float>;
 using FilterType2D = vector<vector<float>>;
 
 
-__global__ void transformKernel(float * input, float * output, float minX, float minY, 
-                                float dx, float dy, int sWidth, int sHeight, int dWidth, int dHeight, float * mat)
+__device__ void bilinearInterp(float * input, float x, float y, int width, int height, float * color)
 {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int x0 = int(x) < width-1 ? int(x) : width-1;
+    int y0 = int(y) < height-1 ? int(y) : height-1;
+    int x1 = x0+1 < width-1 ? x0+1 : width-1;
+    int y1 = y0+1 < height-1 ? y0+1 : height-1;
+    float * c00 = &input[y0 * width*3 + x0*3];
+    float * c01 = &input[y1 * width*3 + x0*3];
+    float * c10 = &input[y0 * width*3 + x1*3];
+    float * c11 = &input[y1 * width*3 + x1*3];
+    float biasX = x - x0;
+    float biasY = y - y0;
 
-    float tx = mat[0] * (minX + x * dx) + mat[1] * (minY + y * dy);
-    float ty = mat[2] * (minX + x * dx) + mat[3] * (minY + y * dy);
-
-    if (0.0f <= tx && tx < float(sWidth) - 1.0f &&
-        0.0f <= ty && ty < float(sHeight) - 1.0f)
-    {
-        output[x*3+0 + ((dHeight-1-y)*3 * dWidth)] = input[int(tx)*3+0 + ((sHeight-1-int(ty)) * 3 * sWidth)];
-        output[x*3+1 + ((dHeight-1-y)*3 * dWidth)] = input[int(tx)*3+1 + ((sHeight-1-int(ty)) * 3 * sWidth)];
-        output[x*3+2 + ((dHeight-1-y)*3 * dWidth)] = input[int(tx)*3+2 + ((sHeight-1-int(ty)) * 3 * sWidth)];
-    }
+    color[0] = (1.0f - biasY) * ((1.0f - biasX) * c00[0] + biasX * c10[0]) + biasY * ((1.0f - biasX) * c01[0] + biasX * c11[0]);
+    color[1] = (1.0f - biasY) * ((1.0f - biasX) * c00[1] + biasX * c10[1]) + biasY * ((1.0f - biasX) * c01[1] + biasX * c11[1]);
+    color[2] = (1.0f - biasY) * ((1.0f - biasX) * c00[2] + biasX * c10[2]) + biasY * ((1.0f - biasX) * c01[2] + biasX * c11[2]);
 }
 
 
-// Image::Pixel bilinearInterp(const Image & image, float x, float y)
-// {
-//     int x0 = min(int(x), image.width() - 1);
-//     int y0 = min(int(y), image.height() - 1);
-//     int x1 = min(x0 + 1, image.width() - 1);
-//     int y1 = min(y0 + 1, image.height() - 1);
-//     Image::Pixel c00 = image.getColor(x0, y0);
-//     Image::Pixel c01 = image.getColor(x0, y1);
-//     Image::Pixel c10 = image.getColor(x1, y0);
-//     Image::Pixel c11 = image.getColor(x1, y1);
-//     float biasX = x - x0;
-//     float biasY = y - y0;
+__global__ void transformKernel(float * input, float * output, float minX, float minY, 
+                                float dx, float dy, int iWidth, int iHeight, int oWidth, int oHeight, float * mat)
+{                            
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < 0 || x > oWidth-1 || y < 0 || y > oHeight-1)
+        return;
 
-//     Image::Pixel result;
-//     result.r = (1.0f - biasY) * ((1.0f - biasX) * c00.r + biasX * c10.r) + biasY * ((1.0f - biasX) * c01.r + biasX * c11.r);
-//     result.g = (1.0f - biasY) * ((1.0f - biasX) * c00.g + biasX * c10.g) + biasY * ((1.0f - biasX) * c01.g + biasX * c11.g);
-//     result.b = (1.0f - biasY) * ((1.0f - biasX) * c00.b + biasX * c10.b) + biasY * ((1.0f - biasX) * c01.b + biasX * c11.b);
+    float tx = mat[0] * (minX + x * dx) + mat[1] * (minY + y * dy);    
+    float ty = mat[2] * (minX + x * dx) + mat[3] * (minY + y * dy);
 
-//     return result;
-// }
+    if (-0.5f <= tx && tx <= float(iWidth) - 0.5f &&
+        -0.5f <= ty && ty <= float(iHeight) - 0.5f)
+    {
+        int out = (oHeight-1-y) * oWidth*3 + x*3;
+        // int in = (iHeight-1-int(ty)) * iWidth*3 + int(tx)*3;
+        // output[out+0] = input[in+0];
+        // output[out+1] = input[in+1];
+        // output[out+2] = input[in+2];
+
+        float color[3];
+        bilinearInterp(input, tx+0.5f, iHeight-1-ty+0.5f, iWidth, iHeight, color);
+        output[out+0] = color[0];
+        output[out+1] = color[1];
+        output[out+2] = color[2];
+    }    
+}    
 
 
 Image transformCuda(const Image & image, Mat2 transform)
@@ -84,12 +99,12 @@ Image transformCuda(const Image & image, Mat2 transform)
     float dy = (newMaxY - newMinY) / transformed.height();
 
     Image source;
-    // float sizeRatio = float(transformed.width() * transformed.height()) / (image.width() * image.height());
-    // if (sizeRatio < 0.25)
-    //     source = gaussianBlurSeparableCuda(image, 9, 3);
+    float sizeRatio = float(transformed.width() * transformed.height()) / (image.width() * image.height());
+    if (sizeRatio < 0.25)
+        source = gaussianBlurSeparableCuda(image, 9, 3);
     // else if (sizeRatio > 1.5f)
     //     source = gaussianBlurSeparableCuda(image, 3, 1);
-    // else
+    else
         source = image;
 
     Mat2 transformInv = transform.inverse();
@@ -148,6 +163,12 @@ Image scaleCuda(const Image & image, float scaleX, float scaleY)
 
 __device__ int clamp(int x, int a, int b)
 {
+    if (b < a)
+    {
+        int tmp = a;
+        a = b;
+        b = tmp;
+    }
     if (x < a)
         return a;
     if (x > b)
@@ -165,6 +186,9 @@ __global__ void convolve2DKernel(float * input, float * output, int width, int h
     
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < 0 || x > width-1 || y < 0 || y > height-1)
+        return;
+
     for (int j = y-r; j <= y+r; ++j)
     {
         for (int i = x-r; i <= x+r; ++i)
@@ -199,6 +223,7 @@ __global__ void printFilter(float * filter, int size)
         }
         printf("\n");
     }
+    printf("\n");
 }
 
 
@@ -243,6 +268,9 @@ __global__ void convolve1DKernel(float * input, float * output, int width, int h
     
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < 0 || x > width-1 || y < 0 || y > height-1)
+        return;
+
     if (vert)
     {
         int tmp = x;
@@ -308,8 +336,6 @@ Image convolveImage1DCuda(const Image & image, const FilterType1D & filter)
     convolve1DKernel<<<gridSize, blockSize>>>(input, output, image.width(), image.height(), filter1D, size, false);
 
     cudaDeviceSynchronize();
-    
-    //cudaMemcpy(input, output, middle.width() * middle.height() * sizeof(float) * 3, cudaMemcpyDeviceToDevice);
 
     convolve1DKernel<<<gridSize, blockSize>>>(output, input, middle.width(), middle.height(), filter1D, size, true);
     
