@@ -95,11 +95,11 @@ public:
     }
 
     // readPPM
-    // Reads image data from given PPM filename.
+    // Reads image data from given PPM filename, returns true on success.
     bool readPPM(std::string filename);
 
     // writePPM
-    // Writes image data to given PPM filename.
+    // Writes image data to given PPM filename, returns true on success.
     bool writePPM(std::string filename) const;
 
 // ---- Image: general public operators ----

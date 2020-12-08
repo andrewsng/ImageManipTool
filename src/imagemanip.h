@@ -41,7 +41,7 @@ Image boxBlurSeparable(const Image & image, int radius);
 Image gaussianBlur(const Image & image, int radius, float stddev);
 
 
-// gaussianBlur
+// gaussianBlurSeparable
 // Blurs image using a separable 1D gaussian filter of given radius and std. deviation.
 Image gaussianBlurSeparable(const Image & image, int radius, float stddev);
 
