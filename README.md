@@ -10,16 +10,16 @@ and then sped up those operations using GPU acceleration with CUDA.
 Here is an example of the rotation operation. Instead of preserving the original image size,
 the size depends entirely on where the transformed image ends up, so be careful doing repeated operations, as it might blow up the image size.
 
-![House](https://github.com/ngandrew1337/cs301_Project/blob/main/test/output/house_2.png?raw=true)
-![RotatedHouse](https://github.com/ngandrew1337/cs301_Project/blob/main/test/output/house_2_rotate.png?raw=true)
+![House](https://github.com/andrewsng/ImageManipTool/blob/main/test/output/house_2.png?raw=true)
+![RotatedHouse](https://github.com/andrewsng/ImageManipTool/blob/main/test/output/house_2_rotate.png?raw=true)
 
 ## Convolutions/Filtering
 
 Here is the input and output of a Gaussian blur convolution. The two filters I added, box blur and gaussian blur, both have the option to 
 use their separable 1D filters, which convolve the image much faster as filter sizes grow.
 
-![Building](https://github.com/ngandrew1337/cs301_Project/blob/main/test/output/west_2.png?raw=true)
-![BlurredBuilding](https://github.com/ngandrew1337/cs301_Project/blob/main/test/output/west_2_gauss.png?raw=true)
+![Building](https://github.com/andrewsng/ImageManipTool/blob/main/test/output/west_2.png?raw=true)
+![BlurredBuilding](https://github.com/andrewsng/ImageManipTool/blob/main/test/output/west_2_gauss.png?raw=true)
 
 ## Building
 
